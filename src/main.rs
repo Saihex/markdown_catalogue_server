@@ -1,6 +1,7 @@
 extern crate serde_json;
 
 use actix_web::{web, App, HttpResponse, HttpServer};
+use frontmatter_extractor::FrontMatter;
 use rust_search::{similarity_sort, SearchBuilder};
 use serde_json::json;
 use std::{collections::HashMap, path::PathBuf};
@@ -35,9 +36,26 @@ async fn handle_request(
     }
 
     if path.is_dir() && query.get("franchise").unwrap_or(&String::new()) == "true" {
-        let franchise_read = handle_franchise_data(&format!("{}/index.md", raw_path));
+        let franchise_read = handle_franchise_data(&format!("{}/index.md", raw_path), raw_path);
 
         match franchise_read {
+            Ok(value) => {
+                return HttpResponse::Ok()
+                    .append_header(("Content-Type", "application/json"))
+                    .body(value.to_string());
+            }
+            Err(_) => {
+                return HttpResponse::InternalServerError().finish();
+            }
+        }
+    }
+
+    if path.is_dir() && query.get("catalog_search").unwrap_or(&String::new()) == "true" {
+        let dropped_no = String::new();
+        let search_input = query.get("cat_search").unwrap_or(&dropped_no);
+        let cat_read = handle_catalog_search(search_input, raw_path);
+
+        match cat_read {
             Ok(value) => {
                 return HttpResponse::Ok()
                     .append_header(("Content-Type", "application/json"))
@@ -53,8 +71,7 @@ async fn handle_request(
         let directory_search = handle_directory(
             &path,
             query.get("dir_search").unwrap_or(&String::new()),
-            &filename,
-            &raw_path
+            &raw_path,
         );
 
         return HttpResponse::Ok()
@@ -83,7 +100,54 @@ fn handle_file(path: &str) -> Option<String> {
     }
 }
 
-fn handle_franchise_data(path: &str) -> Result<serde_json::Value, u16> {
+fn handle_catalog_search(search_input: &str, raw_path: &str) -> Result<serde_json::Value, u16> {
+    let mut search: Vec<String> = SearchBuilder::default()
+        .location(raw_path)
+        .ignore_case()
+        .depth(1)
+        .search_input(search_input)
+        .build()
+        .collect();
+
+    similarity_sort(&mut search, search_input);
+    let mut categories: Vec<FrontMatter> = Vec::new();
+
+    let mut index: u32 = 0;
+    while index < search.len() as u32 {
+        search[index as usize] = search[index as usize].replace("\\", "/"); // stop it windows.
+
+        if search[index as usize] == raw_path || search[index as usize].contains("index.md") {
+            search.remove(index as usize);
+        } else {
+            let file_data = frontmatter_extractor::read_file_to_string(&format!(
+                "{}/index.md",
+                search[index as usize]
+            ));
+            let value = match file_data {
+                Some(string_data) => string_data,
+                _ => continue,
+            };
+
+            let mut front_matter = match frontmatter_extractor::FrontMatter::from_yaml(&value) {
+                Ok(s) => match s {
+                    Some(w) => w,
+                    _ => continue,
+                },
+                Err(_) => continue,
+            };
+            println!("{}", raw_path);
+            front_matter.dynamic_path = search[index as usize]
+                .trim_start_matches(&format!("{}/", raw_path))
+                .to_owned();
+            categories.push(front_matter);
+            index += 1;
+        }
+    }
+
+    return Ok(json!(categories));
+}
+
+fn handle_franchise_data(path: &str, raw_path: &str) -> Result<serde_json::Value, u16> {
     match frontmatter_extractor::read_file_to_string(path) {
         Some(value) => {
             let _front_matter = frontmatter_extractor::FranchiseData::from_yaml(&value);
@@ -95,8 +159,17 @@ fn handle_franchise_data(path: &str) -> Result<serde_json::Value, u16> {
                 }
             };
 
+            let search: Vec<String> = SearchBuilder::default()
+                .location(raw_path)
+                .ext(".md")
+                .ignore_case()
+                .depth(3)
+                .build()
+                .collect();
+
             match front_matter {
-                Some(some_more_value) => {
+                Some(mut some_more_value) => {
+                    some_more_value.page_count = search.len() as u64;
                     return Ok(json!(some_more_value));
                 }
                 None => {
@@ -110,7 +183,7 @@ fn handle_franchise_data(path: &str) -> Result<serde_json::Value, u16> {
     }
 }
 
-fn handle_directory(path: &PathBuf, search_input: &str, filename: &str, raw_path: &str) -> serde_json::Value {
+fn handle_directory(path: &PathBuf, search_input: &str, raw_path: &str) -> serde_json::Value {
     let mut search: Vec<String> = SearchBuilder::default()
         .location(path)
         .limit(50)
@@ -135,7 +208,7 @@ fn handle_directory(path: &PathBuf, search_input: &str, filename: &str, raw_path
                     Err(_) => None,
                 };
 
-                *file_path = file_path.replace("\\","/"); // stop it windows.
+                *file_path = file_path.replace("\\", "/"); // stop it windows.
 
                 match front_matter {
                     Some(front_matter) => {

@@ -1,11 +1,14 @@
+use serde::Serialize;
+use std::vec::Vec;
 use std::fs::File;
 use std::io::Read;
-use serde::Serialize;
 
+#[derive(Serialize)]
 pub struct FrontMatter {
     pub title: String,
     pub description: String,
     pub image: String,
+    pub dynamic_path: String,
 }
 
 impl FrontMatter {
@@ -14,11 +17,16 @@ impl FrontMatter {
             title: String::new(),
             description: String::new(),
             image: String::new(),
+            dynamic_path: String::new(),
         };
-        
+
         // Parse YAML format
-        let yaml_doc = yaml.trim_start_matches("---").trim_end_matches("---").trim();
-        let yaml_pairs: Vec<(&str, &str)> = yaml_doc.lines()
+        let yaml_doc = yaml
+            .trim_start_matches("---")
+            .trim_end_matches("---")
+            .trim();
+        let yaml_pairs: Vec<(&str, &str)> = yaml_doc
+            .lines()
             .filter_map(|line| {
                 let mut split = line.splitn(2, ": ");
                 if let (Some(key), Some(value)) = (split.next(), split.next()) {
@@ -28,7 +36,7 @@ impl FrontMatter {
                 }
             })
             .collect();
-        
+
         // Populate the struct
         for (key, value) in yaml_pairs {
             match key {
@@ -38,7 +46,7 @@ impl FrontMatter {
                 _ => (),
             }
         }
-        
+
         // Check if all fields are populated
         Ok(Some(front_matter))
     }
@@ -51,6 +59,7 @@ pub struct FranchiseData {
     pub ico_image: String,
     pub wiki_head_image: String,
     pub default_embed_image: String,
+    pub page_count: u64,
 }
 
 impl FranchiseData {
@@ -61,11 +70,16 @@ impl FranchiseData {
             ico_image: String::new(),
             wiki_head_image: String::new(),
             default_embed_image: String::new(),
+            page_count: 0,
         };
-        
+
         // Parse YAML format
-        let yaml_doc = yaml.trim_start_matches("---").trim_end_matches("---").trim();
-        let yaml_pairs: Vec<(&str, &str)> = yaml_doc.lines()
+        let yaml_doc = yaml
+            .trim_start_matches("---")
+            .trim_end_matches("---")
+            .trim();
+        let yaml_pairs: Vec<(&str, &str)> = yaml_doc
+            .lines()
             .filter_map(|line| {
                 let mut split = line.splitn(2, ": ");
                 if let (Some(key), Some(value)) = (split.next(), split.next()) {
@@ -75,7 +89,7 @@ impl FranchiseData {
                 }
             })
             .collect();
-        
+
         // Populate the struct
         for (key, value) in yaml_pairs {
             match key {
@@ -87,10 +101,20 @@ impl FranchiseData {
                 _ => (),
             }
         }
-        
+
         // Check if all fields are populated
         Ok(Some(front_matter))
     }
+}
+
+#[derive(Serialize)]
+pub struct CategoryData {
+    pub title: String,
+    pub description: String,
+    pub ico_image: String,
+    pub wiki_head_image: String,
+    pub default_embed_image: String,
+    pub page_count: u64,
 }
 
 pub fn read_file_to_string(file_path: &str) -> Option<String> {
