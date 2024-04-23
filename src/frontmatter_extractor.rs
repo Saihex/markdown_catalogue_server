@@ -59,6 +59,7 @@ pub struct FranchiseData {
     pub ico_image: String,
     pub wiki_head_image: String,
     pub default_embed_image: String,
+    pub franchise_proper_name: String,
     pub page_count: u64,
 }
 
@@ -70,6 +71,7 @@ impl FranchiseData {
             ico_image: String::new(),
             wiki_head_image: String::new(),
             default_embed_image: String::new(),
+            franchise_proper_name: String::new(),
             page_count: 0,
         };
 
@@ -98,6 +100,7 @@ impl FranchiseData {
                 "ico_image" => front_matter.ico_image = value.to_string(),
                 "wiki_head_image" => front_matter.wiki_head_image = value.to_string(),
                 "default_embed_image" => front_matter.default_embed_image = value.to_string(),
+                "franchise_proper_name" => front_matter.franchise_proper_name = value.to_string(),
                 _ => (),
             }
         }

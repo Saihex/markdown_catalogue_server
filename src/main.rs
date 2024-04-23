@@ -35,42 +35,50 @@ async fn handle_request(
         return HttpResponse::NotFound().finish();
     }
 
-    if path.is_dir() && query.get("franchise").unwrap_or(&String::new()) == "true" {
-        let franchise_read = handle_franchise_data(&format!("{}/index.md", raw_path), raw_path);
+    if query.get("frontmatter_only").unwrap_or(&String::new()) == "true" {
+        if path.is_file() {
+            let franchise_read = handle_frontmatter(raw_path);
 
-        match franchise_read {
-            Ok(value) => {
-                return HttpResponse::Ok()
-                    .append_header(("Content-Type", "application/json"))
-                    .body(value.to_string());
+            match franchise_read {
+                Ok(value) => {
+                    return HttpResponse::Ok()
+                        .append_header(("Content-Type", "application/json"))
+                        .body(value.to_string());
+                }
+                Err(_) => {
+                    return HttpResponse::InternalServerError().finish();
+                }
             }
-            Err(_) => {
-                return HttpResponse::InternalServerError().finish();
-            }
+        } else {
+            return HttpResponse::BadRequest().body("that was a directory man.");
         }
     }
 
-    if path.is_dir() && query.get("catalog_search").unwrap_or(&String::new()) == "true" {
-        let dropped_no = String::new();
-        let search_input = query.get("cat_search").unwrap_or(&dropped_no);
-        let cat_read = handle_catalog_search(search_input, raw_path);
+    if query.get("category_search").unwrap_or(&String::new()) == "true" {
+        if path.is_dir() {
+            let dropped_no = String::new();
+            let search_input = query.get("search_input").unwrap_or(&dropped_no);
+            let cat_read = handle_category_search(search_input, raw_path);
 
-        match cat_read {
-            Ok(value) => {
-                return HttpResponse::Ok()
-                    .append_header(("Content-Type", "application/json"))
-                    .body(value.to_string());
+            match cat_read {
+                Ok(value) => {
+                    return HttpResponse::Ok()
+                        .append_header(("Content-Type", "application/json"))
+                        .body(value.to_string());
+                }
+                Err(_) => {
+                    return HttpResponse::InternalServerError().finish();
+                }
             }
-            Err(_) => {
-                return HttpResponse::InternalServerError().finish();
-            }
+        } else {
+            return HttpResponse::BadRequest().body("that was a file man.");
         }
     }
 
     if path.is_dir() {
         let directory_search = handle_directory(
             &path,
-            query.get("dir_search").unwrap_or(&String::new()),
+            query.get("search_input").unwrap_or(&String::new()),
             &raw_path,
         );
 
@@ -100,7 +108,7 @@ fn handle_file(path: &str) -> Option<String> {
     }
 }
 
-fn handle_catalog_search(search_input: &str, raw_path: &str) -> Result<serde_json::Value, u16> {
+fn handle_category_search(search_input: &str, raw_path: &str) -> Result<serde_json::Value, u16> {
     let mut search: Vec<String> = SearchBuilder::default()
         .location(raw_path)
         .ignore_case()
@@ -135,7 +143,6 @@ fn handle_catalog_search(search_input: &str, raw_path: &str) -> Result<serde_jso
                 },
                 Err(_) => continue,
             };
-            println!("{}", raw_path);
             front_matter.dynamic_path = search[index as usize]
                 .trim_start_matches(&format!("{}/", raw_path))
                 .to_owned();
@@ -147,8 +154,8 @@ fn handle_catalog_search(search_input: &str, raw_path: &str) -> Result<serde_jso
     return Ok(json!(categories));
 }
 
-fn handle_franchise_data(path: &str, raw_path: &str) -> Result<serde_json::Value, u16> {
-    match frontmatter_extractor::read_file_to_string(path) {
+fn handle_frontmatter(raw_path: &str) -> Result<serde_json::Value, u16> {
+    match frontmatter_extractor::read_file_to_string(raw_path) {
         Some(value) => {
             let _front_matter = frontmatter_extractor::FranchiseData::from_yaml(&value);
 
@@ -159,8 +166,15 @@ fn handle_franchise_data(path: &str, raw_path: &str) -> Result<serde_json::Value
                 }
             };
 
+            let mut page_count_path = raw_path;
+
+            if let Some(index) = raw_path.rfind('/') {
+                // Use index to slice the string
+                page_count_path = &raw_path[..index];
+            }
+
             let search: Vec<String> = SearchBuilder::default()
-                .location(raw_path)
+                .location(page_count_path)
                 .ext(".md")
                 .ignore_case()
                 .depth(3)
@@ -217,13 +231,13 @@ fn handle_directory(path: &PathBuf, search_input: &str, raw_path: &str) -> serde
                             .to_string();
                         *file_path = file_path.trim_end_matches(".md").to_string();
 
-                        let dynamic_route_clone = file_path.clone();
+                        let dynamic_path_clone = file_path.clone();
 
                         let new_data = data_types::DirectoryLister {
                             title: front_matter.title,
                             description: front_matter.description,
                             image: front_matter.image,
-                            dynamic_route: dynamic_route_clone,
+                            dynamic_path: dynamic_path_clone,
                         };
 
                         if file_path.clone() != "index" {

@@ -14,7 +14,7 @@ If given path is a file; the handler will read it and pass it as body, basically
 
 ## List mode
 ### ***WARNING***
-front-matter of every markdown files must have `title`, `description` and `image` string values. Without this, the server will still list it but the string value for them will be empty. No additional front-matters will be included. Files with `index` as `dynamic_route` will be removed from the list.
+front-matter of every markdown files must have `title`, `description` and `image` string values. Without this, the server will still list it but the string value for them will be empty. No additional front-matters will be included. Files with `index` as `dynamic_path` will be removed from the list.
 
 ### List mode JSON body
 List mode will return a JSON array of JSON dictionaries structured like this
@@ -24,12 +24,12 @@ List mode will return a JSON array of JSON dictionaries structured like this
         "title": "",
         "description": "",
         "image": "",
-        "dynamic_route": ""
+        "dynamic_path": ""
     }
 ]
 ```
 
-The first 3 will be set to what it reads from the markdown front-matter. `dynamic_route` will be set to path relative to the current directory which is like this:
+The first 3 will be set to what it reads from the markdown front-matter. `dynamic_path` will be set to path relative to the current directory which is like this:
 
 `/collection/something.md` -> `something`
 
