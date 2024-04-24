@@ -30,6 +30,19 @@ async fn handle_request(
     let filename = &info.0;
     let raw_path = &format!("{}/{}", GLOBAL_COLLECTION_DIRECTORY, filename);
     let path = PathBuf::from(raw_path);
+    let dropped_no = String::new();
+
+    if query.get("root_dir_search").unwrap_or(&String::default()) == "true" {
+        let wiki_found =
+            handle_root_directory_search(query.get("search_input").unwrap_or(&dropped_no));
+        return HttpResponse::Ok()
+            .append_header(("Content-Type", "application/json"))
+            .body(wiki_found.to_string());
+    }
+
+    if raw_path == &format!("{}/", GLOBAL_COLLECTION_DIRECTORY) {
+        return HttpResponse::Forbidden().finish();
+    }
 
     if !path.exists() {
         return HttpResponse::NotFound().finish();
@@ -56,7 +69,6 @@ async fn handle_request(
 
     if query.get("category_search").unwrap_or(&String::new()) == "true" {
         if path.is_dir() {
-            let dropped_no = String::new();
             let search_input = query.get("search_input").unwrap_or(&dropped_no);
             let cat_read = handle_category_search(search_input, raw_path);
 
@@ -195,6 +207,47 @@ fn handle_frontmatter(raw_path: &str) -> Result<serde_json::Value, u16> {
             return Err(404);
         }
     }
+}
+
+fn handle_root_directory_search(search_input: &str) -> serde_json::Value {
+    let mut search: Vec<String> = SearchBuilder::default()
+        .location(GLOBAL_COLLECTION_DIRECTORY)
+        .ignore_case()
+        .search_input(search_input)
+        .depth(1)
+        .build()
+        .collect();
+
+    similarity_sort(&mut search, search_input);
+    let mut wiki_list: Vec<frontmatter_extractor::FranchiseData> = Vec::new();
+
+    for file_path in &mut search {
+        let index_markdown = PathBuf::from(format!("{}/index.md", file_path.replace("\\", "/")));
+
+        if index_markdown.exists() && index_markdown.is_file() {
+            let file_data =
+                match frontmatter_extractor::read_file_to_string(&index_markdown.to_str().unwrap())
+                {
+                    Some(string_data) => string_data,
+                    None => continue,
+                };
+
+            let mut frontmatter_data = match frontmatter_extractor::FranchiseData::from_yaml(&file_data)
+            {
+                Ok(s) => match s {
+                    Some(w) => w,
+                    _ => continue,
+                },
+                Err(_) => continue,
+            };
+
+            frontmatter_data.dynamic_path = file_path.replace("\\", "/").split("/").last().unwrap_or("").to_owned();
+
+            wiki_list.push(frontmatter_data);
+        }
+    }
+
+    json!(wiki_list)
 }
 
 fn handle_directory(path: &PathBuf, search_input: &str, raw_path: &str) -> serde_json::Value {

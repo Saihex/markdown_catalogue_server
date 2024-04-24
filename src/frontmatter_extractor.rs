@@ -60,14 +60,18 @@ pub struct FranchiseData {
     pub wiki_head_image: String,
     pub default_embed_image: String,
     pub franchise_proper_name: String,
+    pub image: String,
     pub page_count: u64,
+    pub dynamic_path: String,
 }
 
 impl FranchiseData {
     pub fn from_yaml(yaml: &str) -> Result<Option<Self>, String> {
         let mut front_matter = FranchiseData {
             title: String::new(),
+            image: String::new(),
             description: String::new(),
+            dynamic_path: String::new(),
             ico_image: String::new(),
             wiki_head_image: String::new(),
             default_embed_image: String::new(),
@@ -96,6 +100,7 @@ impl FranchiseData {
         for (key, value) in yaml_pairs {
             match key {
                 "title" => front_matter.title = value.to_string(),
+                "image" => front_matter.image = value.to_string(),
                 "description" => front_matter.description = value.to_string(),
                 "ico_image" => front_matter.ico_image = value.to_string(),
                 "wiki_head_image" => front_matter.wiki_head_image = value.to_string(),
