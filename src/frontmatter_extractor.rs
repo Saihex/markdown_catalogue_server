@@ -63,6 +63,7 @@ pub struct FranchiseData {
     pub image: String,
     pub page_count: u64,
     pub dynamic_path: String,
+    pub saihex_creation: bool,
 }
 
 impl FranchiseData {
@@ -73,6 +74,7 @@ impl FranchiseData {
             description: String::new(),
             dynamic_path: String::new(),
             ico_image: String::new(),
+            saihex_creation: false,
             wiki_head_image: String::new(),
             default_embed_image: String::new(),
             franchise_proper_name: String::new(),
@@ -103,6 +105,7 @@ impl FranchiseData {
                 "image" => front_matter.image = value.to_string(),
                 "description" => front_matter.description = value.to_string(),
                 "ico_image" => front_matter.ico_image = value.to_string(),
+                "saihex_creation" => front_matter.saihex_creation = value.to_string() == "true",
                 "wiki_head_image" => front_matter.wiki_head_image = value.to_string(),
                 "default_embed_image" => front_matter.default_embed_image = value.to_string(),
                 "franchise_proper_name" => front_matter.franchise_proper_name = value.to_string(),
