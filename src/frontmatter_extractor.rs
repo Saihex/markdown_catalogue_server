@@ -40,15 +40,29 @@ impl FrontMatter {
         // Populate the struct
         for (key, value) in yaml_pairs {
             match key {
-                "title" => front_matter.title = value.to_string(),
-                "description" => front_matter.description = value.to_string(),
-                "image" => front_matter.image = value.to_string(),
+                "title" => front_matter.title = value.to_string().remove_quotes(),
+                "description" => front_matter.description = value.to_string().remove_quotes(),
+                "image" => front_matter.image = value.to_string().remove_quotes(),
                 _ => (),
             }
         }
 
         // Check if all fields are populated
         Ok(Some(front_matter))
+    }
+}
+
+// pub fn cut_off_string_safety(value: String) -> String {
+//     value.trim_start_matches('"').trim_end_matches('"').to_owned()
+// }
+
+trait CutOffStringSafety {
+    fn remove_quotes(&self) -> String;
+}
+
+impl CutOffStringSafety for String {
+    fn remove_quotes(&self) -> String {
+        self.trim_start_matches('"').trim_end_matches('"').to_string()
     }
 }
 
@@ -101,14 +115,14 @@ impl FranchiseData {
         // Populate the struct
         for (key, value) in yaml_pairs {
             match key {
-                "title" => front_matter.title = value.to_string(),
-                "image" => front_matter.image = value.to_string(),
-                "description" => front_matter.description = value.to_string(),
-                "ico_image" => front_matter.ico_image = value.to_string(),
-                "saihex_creation" => front_matter.saihex_creation = value.to_string() == "true",
-                "wiki_head_image" => front_matter.wiki_head_image = value.to_string(),
-                "default_embed_image" => front_matter.default_embed_image = value.to_string(),
-                "franchise_proper_name" => front_matter.franchise_proper_name = value.to_string(),
+                "title" => front_matter.title = value.to_string().remove_quotes(),
+                "image" => front_matter.image = value.to_string().remove_quotes(),
+                "description" => front_matter.description = value.to_string().remove_quotes(),
+                "ico_image" => front_matter.ico_image = value.to_string().remove_quotes(),
+                "saihex_creation" => front_matter.saihex_creation = value.to_string().remove_quotes() == "true",
+                "wiki_head_image" => front_matter.wiki_head_image = value.to_string().remove_quotes(),
+                "default_embed_image" => front_matter.default_embed_image = value.to_string().remove_quotes(),
+                "franchise_proper_name" => front_matter.franchise_proper_name = value.to_string().remove_quotes(),
                 _ => (),
             }
         }
