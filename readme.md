@@ -1,4 +1,6 @@
 # Saihex Studios' Markdown Catalogue Server
+<img align="right" width="128" src="https://img.saihex.com/software_logos/markdown_catalogue_server.svg">
+
 This software is used by [Saihex Studios](www.saihex.com) for the wiki website in order to catalogue the markdown files.
 Meant to be used with [Saihex Studios' Nuxt Markdown Wiki Website](https://github.com/Saihex/nuxt-static-markdown-wiki-website)
 
