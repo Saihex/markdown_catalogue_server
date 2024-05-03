@@ -1,5 +1,6 @@
 # Saihex Studios' Markdown Catalogue Server
 This software is used by [Saihex Studios](www.saihex.com) for the wiki website in order to catalogue the markdown files.
+Meant to be used with [Saihex Studios' Nuxt Markdown Wiki Website](https://github.com/Saihex/nuxt-static-markdown-wiki-website)
 
 - Expose port `8080`
 - Attach `/collection` volume to the directory that contains all the images and files you want to expose.
