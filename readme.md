@@ -37,3 +37,13 @@ The first 3 will be set to what it reads from the markdown front-matter. `dynami
 `/collection/something.md` -> `something`
 
 removal of the `.md` is due to how our wiki website dynamic routes works. **List mode will only list 50 markdown files at once sorted by similarity first then alphabet.**
+
+Used dependencies
+```
+async-stream = "0.3.5" --  MIT
+actix-web = "4" --  MIT OR Apache-2.0 
+actix-files = "0.6" --  MIT OR Apache-2.0 
+rust_search = "2.0.0" --  MIT
+serde_json = "1.0" --  MIT OR Apache-2.0 
+serde = { version = "1.0", features = ["derive"] } --  MIT OR Apache-2.0
+```
