@@ -1,3 +1,6 @@
+**Version: 0.0.2-a**
+Note: Letters after the version numbers are their sub-evolutions when non-major changes were added. Version number will increase after the letter hits `z`.
+
 # Saihex Studios' Markdown Catalogue Server
 <img align="right" width="128" src="https://img.saihex.com/software_logos/markdown_catalogue_server.svg">
 
@@ -46,4 +49,9 @@ actix-files = "0.6" --  MIT OR Apache-2.0
 rust_search = "2.0.0" --  MIT
 serde_json = "1.0" --  MIT OR Apache-2.0 
 serde = { version = "1.0", features = ["derive"] } --  MIT OR Apache-2.0
+```
+
+**Docker Image**
+```
+saihex/markdown_catalogue_server:v0.0.2-a
 ```

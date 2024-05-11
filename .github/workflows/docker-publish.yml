@@ -1,0 +1,27 @@
+name: Build and push to Docker Hub
+
+on:
+  push:
+    branches:
+      - 'master'
+    tags: [ 'v*.*.*-*' ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      -
+        name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_AUTOMATION_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_AUTOMATION_PASSWORD }}
+      -
+        name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          tags: docker.io/saihex/markdown_catalogue_server:${{ github.event.head_commit.message }}
