@@ -291,6 +291,7 @@ fn handle_directory(path: &PathBuf, search_input: &str, raw_path: &str) -> serde
                             description: front_matter.description,
                             image: front_matter.image,
                             dynamic_path: dynamic_path_clone,
+                            spoiler: front_matter.spoiler,
                         };
 
                         if file_path.clone() != "index" {

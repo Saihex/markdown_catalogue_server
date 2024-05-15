@@ -1,4 +1,4 @@
-**Version: 0.0.2-a**
+**Version: 0.0.2-b**
 Note: Letters after the version numbers are their sub-evolutions when non-major changes were added. Version number will increase after the letter hits `z`.
 
 # Saihex Studios' Markdown Catalogue Server
@@ -22,15 +22,44 @@ If given path is a file; the handler will read it and pass it as body, basically
 ### ***WARNING***
 front-matter of every markdown files must have `title`, `description` and `image` string values. Without this, the server will still list it but the string value for them will be empty. No additional front-matters will be included. Files with `index` as `dynamic_path` will be removed from the list.
 
+### Front-matter parsing
+The software will read the front-matter and make a object of it. Default value of the type is used if the front-matter value isn't found.
+
+For those with sensitive characters please use **quotation mark** in between the String value. The software will automatically remove the quotes from the String value on parsing
+
+**Front-matters that are not in the expected list will not be included into the parsed data.**
+
+### Expected franchise markdown front-matters
+```rust
+franchise_proper_name: String, // Proper name of the franchise
+title: String, // Title of the page, normally "Home"
+description: String, // Description of the franchise
+ico_image: String, // The tab icon
+wiki_head_image: String, // The image that appears on top-left of the wiki page.
+default_embed_image: String, // Default embed image which is used for main page.
+image: String, // Square logo image
+saihex_creation: true // Optional. Used to determine whether it is Saihex's creation. Default to false if none found.
+```
+
+### Expected Front-matters within markdown files
+```rust
+title: String,
+description: String,
+image: String, // The image shown at the search results and page embed
+spoiler: bool // optional, if none the software will assume it as false.
+```
+
 ### List mode JSON body
 List mode will return a JSON array of JSON dictionaries structured like this
+(Defaults)
 ```json
 [
     {
         "title": "",
         "description": "",
         "image": "",
-        "dynamic_path": ""
+        "dynamic_path": "",
+        "spoiler": false,
     }
 ]
 ```
@@ -53,5 +82,5 @@ serde = { version = "1.0", features = ["derive"] } --  MIT OR Apache-2.0
 
 **Docker Image**
 ```
-saihex/markdown_catalogue_server:v0.0.2-a
+saihex/markdown_catalogue_server:v0.0.2-b
 ```

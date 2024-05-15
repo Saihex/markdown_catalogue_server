@@ -6,4 +6,5 @@ pub struct DirectoryLister {
     pub title: String,
     pub description: String,
     pub image: String,
+    pub spoiler: bool,
 }

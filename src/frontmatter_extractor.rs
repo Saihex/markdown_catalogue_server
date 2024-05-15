@@ -9,6 +9,7 @@ pub struct FrontMatter {
     pub description: String,
     pub image: String,
     pub dynamic_path: String,
+    pub spoiler: bool
 }
 
 impl FrontMatter {
@@ -18,6 +19,7 @@ impl FrontMatter {
             description: String::new(),
             image: String::new(),
             dynamic_path: String::new(),
+            spoiler: false
         };
 
         // Parse YAML format
@@ -43,6 +45,7 @@ impl FrontMatter {
                 "title" => front_matter.title = value.to_string().remove_quotes(),
                 "description" => front_matter.description = value.to_string().remove_quotes(),
                 "image" => front_matter.image = value.to_string().remove_quotes(),
+                "spoiler" => front_matter.spoiler = value.to_string().remove_quotes() == "true",
                 _ => (),
             }
         }
