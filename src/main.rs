@@ -7,20 +7,69 @@ use serde_json::json;
 use std::{collections::HashMap, path::PathBuf};
 
 mod data_types;
+mod directory_utility;
 mod frontmatter_extractor;
+mod sitemap_utility;
 
 const GLOBAL_COLLECTION_DIRECTORY: &str = "./collection";
+const SERVER_VERSION: &str = "v0.0.2-c";
+
+///
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     println!("Listening...");
     HttpServer::new(|| {
-        App::new().service(web::resource("/{filename:.*}").route(web::get().to(handle_request)))
-        // Route for image resizing
+        App::new()
+            .service(web::resource("/sitemap").route(web::get().to(handle_sitemap)))
+            .service(web::resource("/{filename:.*}").route(web::get().to(handle_request)))
     })
     .bind("0.0.0.0:8080")?
     .run()
     .await
+}
+
+///
+
+// Making the process of adding server version header or/and cache header less verbose.
+pub trait HeaderManipulator {
+    fn server_version_header(&mut self) -> &mut Self;
+}
+
+impl HeaderManipulator for actix_web::HttpResponseBuilder {
+    fn server_version_header(&mut self) -> &mut Self {
+        self.append_header(("Server-Version", SERVER_VERSION))
+    }
+}
+
+async fn handle_sitemap() -> HttpResponse {
+    let all_the_franchise = match directory_utility::get_directories(GLOBAL_COLLECTION_DIRECTORY) {
+        Ok(all_the_franchise) => all_the_franchise,
+        Err(_) => {
+            return HttpResponse::InternalServerError()
+                .server_version_header()
+                .finish()
+        }
+    };
+
+    let sitemap_xml = {
+        let results = sitemap_utility::UrlSet::generate_sitemap(all_the_franchise, "wiki");
+        match results {
+            Ok(value) => value,
+            Err(_) => {
+                return HttpResponse::InternalServerError()
+                    .server_version_header()
+                    .finish()
+            }
+        }
+    };
+
+    println!("{}", sitemap_xml);
+
+    HttpResponse::Ok()
+        .server_version_header()
+        .append_header(("Content-Type", "text/xml"))
+        .body(sitemap_xml)
 }
 
 async fn handle_request(
@@ -36,16 +85,17 @@ async fn handle_request(
         let wiki_found =
             handle_root_directory_search(query.get("search_input").unwrap_or(&dropped_no));
         return HttpResponse::Ok()
+            .server_version_header()
             .append_header(("Content-Type", "application/json"))
             .body(wiki_found.to_string());
     }
 
     if raw_path == &format!("{}/", GLOBAL_COLLECTION_DIRECTORY) {
-        return HttpResponse::Forbidden().finish();
+        return HttpResponse::Forbidden().server_version_header().finish();
     }
 
     if !path.exists() {
-        return HttpResponse::NotFound().finish();
+        return HttpResponse::NotFound().server_version_header().finish();
     }
 
     if query.get("frontmatter_only").unwrap_or(&String::new()) == "true" {
@@ -55,15 +105,20 @@ async fn handle_request(
             match franchise_read {
                 Ok(value) => {
                     return HttpResponse::Ok()
+                        .server_version_header()
                         .append_header(("Content-Type", "application/json"))
                         .body(value.to_string());
                 }
                 Err(_) => {
-                    return HttpResponse::InternalServerError().finish();
+                    return HttpResponse::InternalServerError()
+                        .server_version_header()
+                        .finish();
                 }
             }
         } else {
-            return HttpResponse::BadRequest().body("that was a directory man.");
+            return HttpResponse::BadRequest()
+                .server_version_header()
+                .body("that was a directory man.");
         }
     }
 
@@ -75,15 +130,20 @@ async fn handle_request(
             match cat_read {
                 Ok(value) => {
                     return HttpResponse::Ok()
+                        .server_version_header()
                         .append_header(("Content-Type", "application/json"))
                         .body(value.to_string());
                 }
                 Err(_) => {
-                    return HttpResponse::InternalServerError().finish();
+                    return HttpResponse::InternalServerError()
+                        .server_version_header()
+                        .finish();
                 }
             }
         } else {
-            return HttpResponse::BadRequest().body("that was a file man.");
+            return HttpResponse::BadRequest()
+                .server_version_header()
+                .body("that was a file man.");
         }
     }
 
@@ -95,6 +155,7 @@ async fn handle_request(
         );
 
         return HttpResponse::Ok()
+            .server_version_header()
             .append_header(("Content-Type", "application/json"))
             .body(directory_search.to_string());
     } else if path.is_file() {
@@ -103,6 +164,7 @@ async fn handle_request(
         match read_file {
             Some(string_) => {
                 return HttpResponse::Ok()
+                    .server_version_header()
                     .append_header(("Content-Type", "text/plain"))
                     .body(string_);
             }
@@ -110,7 +172,9 @@ async fn handle_request(
         }
     }
 
-    HttpResponse::InternalServerError().finish()
+    HttpResponse::InternalServerError()
+        .server_version_header()
+        .finish()
 }
 
 fn handle_file(path: &str) -> Option<String> {
@@ -232,16 +296,21 @@ fn handle_root_directory_search(search_input: &str) -> serde_json::Value {
                     None => continue,
                 };
 
-            let mut frontmatter_data = match frontmatter_extractor::FranchiseData::from_yaml(&file_data)
-            {
-                Ok(s) => match s {
-                    Some(w) => w,
-                    _ => continue,
-                },
-                Err(_) => continue,
-            };
+            let mut frontmatter_data =
+                match frontmatter_extractor::FranchiseData::from_yaml(&file_data) {
+                    Ok(s) => match s {
+                        Some(w) => w,
+                        _ => continue,
+                    },
+                    Err(_) => continue,
+                };
 
-            frontmatter_data.dynamic_path = file_path.replace("\\", "/").split("/").last().unwrap_or("").to_owned();
+            frontmatter_data.dynamic_path = file_path
+                .replace("\\", "/")
+                .split("/")
+                .last()
+                .unwrap_or("")
+                .to_owned();
 
             wiki_list.push(frontmatter_data);
         }
