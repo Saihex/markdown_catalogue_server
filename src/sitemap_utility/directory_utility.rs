@@ -23,3 +23,25 @@ pub fn get_directories<P: AsRef<Path>>(path: P) -> io::Result<Vec<String>> {
 
     Ok(directories)
 }
+
+pub fn get_files<P: AsRef<Path>>(path: P) -> io::Result<Vec<String>> {
+    let mut files = Vec::new();
+
+    for entry in fs::read_dir(path)? {
+        let entry = entry?;
+        match entry.file_type() {
+            Ok(file_type) => {
+                if file_type.is_file() {
+                    if let Some(name) = entry.file_name().to_str() {
+                        if !name.to_string().ends_with("index.md") && name.ends_with(".md") {
+                            files.push(name.to_string());
+                        }
+                    }
+                }
+            }
+            Err(_) => continue,
+        }
+    }
+
+    Ok(files)
+}

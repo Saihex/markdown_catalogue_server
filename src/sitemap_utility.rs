@@ -1,76 +1,141 @@
-use serde::Serialize;
-use serde_xml_rs::ser::to_string;
-use std::{error::Error, vec};
-
+use std::fs;
+mod directory_utility;
+mod sitemap_writer;
+use chrono::{DateTime, Utc};
 const WEBSITE_DOMAIN_NAME: &str = "https://wiki.saihex.com";
 
-#[derive(Debug, Serialize, PartialEq)]
-#[serde(rename = "url")]
-pub struct Url {
-    pub loc: String,
-    pub lastmod: String,
-    pub changefreq: String,
-    pub priority: f32,
-}
+pub fn generate_urls_dir(path: &str, franchise: &str) -> Result<String, String> {
+    let directories = match directory_utility::get_directories(path) {
+        Ok(all_the_franchise) => all_the_franchise,
+        Err(_) => return Err("Failed to read directory".to_string()),
+    };
 
-#[derive(Debug, Serialize, PartialEq)]
-#[serde(rename = "urlset")]
-pub struct UrlSet {
-    #[serde(rename = "url")]
-    pub urls: Vec<Url>,
-}
+    let mut urls: Vec<sitemap_writer::Url> = vec![];
 
-impl UrlSet {
-    pub fn generate_sitemap(
-        urls: Vec<String>,
-        path_before_it: &str,
-    ) -> Result<String, Box<dyn Error>> {
-        // Construct URLs for each franchise
-        // let mut url_objects = Vec::new();
-        // for url in urls {
-        //     url_objects.push(Url {
-        //         loc: format!("{}/{}/{}", WEBSITE_DOMAIN_NAME, path_before_it, url),
-        //         lastmod: "2024-05-17".to_string(),
-        //         changefreq: "monthly".to_string(),
-        //         priority: 0.8,
-        //     });
-        // }
-
-        // // Create the UrlSet
-        // let urlset = UrlSet {
-        //     urls: url_objects,
-        // };
-
-        let url1 = Url {
-            loc: "https://example.com/page1".to_string(),
-            lastmod: "2024-05-19".to_string(),
-            changefreq: "weekly".to_string(),
-            priority: 0.8,
-        };
-    
-        let url2 = Url {
-            loc: "https://example.com/page2".to_string(),
-            lastmod: "2024-05-18".to_string(),
-            changefreq: "monthly".to_string(),
-            priority: 0.6,
-        };
-    
-        let urlset = UrlSet {
-            urls: vec![url1, url2],
-        };
-
-        // Serialize UrlSet to XML string
-        let xml_string = match to_string(&urlset) {
+    for ele in directories {
+        let metadata = match fs::metadata(format!("{}/{}/index.md", path, &ele)) {
             Ok(s) => s,
-            Err(err) => {
-                println!("{}", err);
-                return Err(Box::new(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "Unable to serialize UrlSet to XML",
-                )));
+            Err(_) => continue,
+        };
+
+        let last_modified = {
+            if let Ok(modified_time) = metadata.modified() {
+                let modified_time: DateTime<Utc> = modified_time.into();
+                let formatted_time = modified_time.format("%Y-%m-%d").to_string();
+                formatted_time
+            } else {
+                continue;
             }
         };
 
-        Ok(xml_string)
+        let url = sitemap_writer::Url {
+            loc: format!("{}/wiki{}/{}", WEBSITE_DOMAIN_NAME, franchise, ele),
+            lastmod: last_modified,
+            changefreq: "monthly".to_string(),
+            priority: 0.8,
+        };
+
+        urls.push(url);
     }
+
+    let url_set = sitemap_writer::UrlSet { urls: urls };
+
+    Ok(url_set.to_xml())
+}
+
+pub fn generate_urls_files(path: &str, franchise: &str, category: &str) -> Result<String, String> {
+    let files = match directory_utility::get_files(path) {
+        Ok(all_the_pages) => all_the_pages,
+        Err(_) => return Err("Failed to read directory".to_string()),
+    };
+
+    let mut urls: Vec<sitemap_writer::Url> = vec![];
+
+    for ele in files {
+        let metadata = match fs::metadata(format!("{}/{}", path, &ele)) {
+            Ok(s) => s,
+            Err(_) => continue,
+        };
+
+        let last_modified = {
+            if let Ok(modified_time) = metadata.modified() {
+                let modified_time: DateTime<Utc> = modified_time.into();
+                let formatted_time = modified_time.format("%Y-%m-%d").to_string();
+                formatted_time
+            } else {
+                continue;
+            }
+        };
+
+        let url = sitemap_writer::Url {
+            loc: format!(
+                "{}/wiki/{}/category/{}/{}",
+                WEBSITE_DOMAIN_NAME,
+                franchise,
+                category,
+                ele.trim_end_matches(".md")
+            ),
+            lastmod: last_modified,
+            changefreq: "monthly".to_string(),
+            priority: 0.8,
+        };
+
+        urls.push(url);
+    }
+
+    let url_set = sitemap_writer::UrlSet { urls: urls };
+
+    Ok(url_set.to_xml())
+}
+
+pub fn generate_sitemap_dir(
+    path: &str,
+    franchise: &str,
+    no_twice: bool,
+) -> Result<String, String> {
+    let directories = match directory_utility::get_directories(path) {
+        Ok(all_the_franchise) => all_the_franchise,
+        Err(_) => return Err("Failed to read directory".to_string()),
+    };
+
+    let mut sitemaps: Vec<sitemap_writer::Sitemaps> = vec![];
+
+    for ele in directories {
+        let metadata = match fs::metadata(format!("{}/{}/index.md", path, &ele)) {
+            Ok(s) => s,
+            Err(_) => continue,
+        };
+
+        let last_modified = {
+            if let Ok(modified_time) = metadata.modified() {
+                let modified_time: DateTime<Utc> = modified_time.into();
+                let formatted_time = modified_time.format("%Y-%m-%d").to_string();
+                formatted_time
+            } else {
+                continue;
+            }
+        };
+
+        let sitemap = sitemap_writer::Sitemaps {
+            loc: format!(
+                "{}/api/sitemap_xml/{}{}",
+                WEBSITE_DOMAIN_NAME, franchise, ele
+            ),
+            lastmod: last_modified.to_owned(),
+        };
+
+        let sitemap2 = sitemap_writer::Sitemaps {
+            loc: format!("{}/api/sitemap/{}{}", WEBSITE_DOMAIN_NAME, franchise, ele),
+            lastmod: last_modified.to_owned(),
+        };
+
+        if !no_twice {
+            sitemaps.push(sitemap);
+        }
+        sitemaps.push(sitemap2);
+    }
+
+    let sitemap_set = sitemap_writer::SitemapSet { sitemaps: sitemaps };
+
+    Ok(sitemap_set.to_xml())
 }

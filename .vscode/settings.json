@@ -2,10 +2,12 @@
     "cSpell.words": [
         "actix",
         "changefreq",
+        "chrono",
         "lastmod",
         "Nuxt",
         "rfind",
         "serde",
+        "sitemapindex",
         "splitn",
         "urlset"
     ]
