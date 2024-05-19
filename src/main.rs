@@ -21,12 +21,10 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
             .service(web::resource("/sitemap").route(web::get().to(handle_sitemap)))
-            .service(web::resource("/sitemap/{franchise}/{category}").route(web::get().to(handle_sitemap_pages)))
             .service(web::resource("/sitemap/{franchise}").route(web::get().to(handle_sitemap_category)))
             //
             .service(web::resource("/sitemap_xml").route(web::get().to(handle_sitemap_xml)))
-            .service(web::resource("/sitemap_xml/{franchise}/{category}").route(web::get().to(handle_sitemap_pages)))
-            .service(web::resource("/sitemap_xml/{franchise}").route(web::get().to(handle_sitemap_xml_category)))
+            .service(web::resource("/sitemap_xml/{franchise}").route(web::get().to(handle_sitemap_category)))
             //
             .service(web::resource("/{filename:.*}").route(web::get().to(handle_request)))
     })
@@ -91,60 +89,9 @@ async fn handle_sitemap_category(info: web::Path<(String,)>) -> HttpResponse {
         .body(franchise_urls)
 }
 
-async fn handle_sitemap_pages(info: web::Path<(String,String)>) -> HttpResponse {
-    let filename = &info.0;
-    let category = &info.1;
-
-    let raw_path = &format!("{}/{}/{}", GLOBAL_COLLECTION_DIRECTORY, filename, category);
-    let path = PathBuf::from(raw_path);
-
-    if !path.exists() {
-        return HttpResponse::NotFound().finish();
-    };
-
-    let page_urls = match sitemap_utility::generate_urls_files(raw_path, filename, category) {
-        Ok(page_urls) => page_urls,
-        Err(_) => {
-            return HttpResponse::InternalServerError()
-                .server_version_header()
-                .finish();
-        }
-    };
-
-    HttpResponse::Ok()
-        .server_version_header()
-        .append_header(("Content-Type", "text/xml"))
-        .body(page_urls)
-}
-
 // Sitemap XML
 async fn handle_sitemap_xml() -> HttpResponse {
     let franchise_urls = match sitemap_utility::generate_sitemap_dir(GLOBAL_COLLECTION_DIRECTORY, "", false) {
-        Ok(franchise_urls) => franchise_urls,
-        Err(_) => {
-            return HttpResponse::InternalServerError()
-                .server_version_header()
-                .finish();
-        }
-    };
-
-    HttpResponse::Ok()
-        .server_version_header()
-        .append_header(("Content-Type", "text/xml"))
-        .body(franchise_urls)
-}
-
-async fn handle_sitemap_xml_category(info: web::Path<(String,)>) -> HttpResponse {
-    let franchise = &info.0;
-
-    let raw_path = &format!("{}/{}", GLOBAL_COLLECTION_DIRECTORY, franchise);
-    let path = PathBuf::from(raw_path);
-
-    if !path.exists() {
-        return HttpResponse::NotFound().server_version_header().finish();
-    };
-
-    let franchise_urls = match sitemap_utility::generate_sitemap_dir(raw_path, &format!("{}/", franchise), true) {
         Ok(franchise_urls) => franchise_urls,
         Err(_) => {
             return HttpResponse::InternalServerError()
