@@ -1,5 +1,14 @@
 {
     "cSpell.words": [
-        "splitn"
+        "actix",
+        "changefreq",
+        "chrono",
+        "lastmod",
+        "Nuxt",
+        "rfind",
+        "serde",
+        "sitemapindex",
+        "splitn",
+        "urlset"
     ]
 }
