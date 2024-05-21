@@ -2,18 +2,17 @@ extern crate serde_json;
 
 use actix_web::{web, App, HttpResponse, HttpServer};
 use frontmatter_extractor::FrontMatter;
-use rust_search::{similarity_sort, SearchBuilder};
 use serde_json::json;
 use std::{collections::HashMap, path::PathBuf};
 
 mod data_types;
-mod frontmatter_extractor;
+mod file_searcher;
+pub mod frontmatter_extractor;
 mod sitemap_utility;
 
 const GLOBAL_COLLECTION_DIRECTORY: &str = "./collection";
-const SERVER_VERSION: &str = "v0.0.2-c";
-
-///
+const SERVER_VERSION: &str = "v0.0.2-d";
+const DEFAULT_EXCLUSION: [&str; 2] = [".git", ".vscode"];
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -21,10 +20,15 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
             .service(web::resource("/sitemap").route(web::get().to(handle_sitemap)))
-            .service(web::resource("/sitemap/{franchise}").route(web::get().to(handle_sitemap_category)))
+            .service(
+                web::resource("/sitemap/{franchise}").route(web::get().to(handle_sitemap_category)),
+            )
             //
             .service(web::resource("/sitemap_xml").route(web::get().to(handle_sitemap_xml)))
-            .service(web::resource("/sitemap_xml/{franchise}").route(web::get().to(handle_sitemap_category)))
+            .service(
+                web::resource("/sitemap_xml/{franchise}")
+                    .route(web::get().to(handle_sitemap_category)),
+            )
             //
             .service(web::resource("/{filename:.*}").route(web::get().to(handle_request)))
     })
@@ -74,14 +78,15 @@ async fn handle_sitemap_category(info: web::Path<(String,)>) -> HttpResponse {
         return HttpResponse::NotFound().server_version_header().finish();
     };
 
-    let franchise_urls = match sitemap_utility::generate_urls_dir(raw_path, &format!("/{}/category", filename)) {
-        Ok(franchise_urls) => franchise_urls,
-        Err(_) => {
-            return HttpResponse::InternalServerError()
-                .server_version_header()
-                .finish();
-        }
-    };
+    let franchise_urls =
+        match sitemap_utility::generate_urls_dir(raw_path, &format!("/{}/category", filename)) {
+            Ok(franchise_urls) => franchise_urls,
+            Err(_) => {
+                return HttpResponse::InternalServerError()
+                    .server_version_header()
+                    .finish();
+            }
+        };
 
     HttpResponse::Ok()
         .server_version_header()
@@ -91,21 +96,21 @@ async fn handle_sitemap_category(info: web::Path<(String,)>) -> HttpResponse {
 
 // Sitemap XML
 async fn handle_sitemap_xml() -> HttpResponse {
-    let franchise_urls = match sitemap_utility::generate_sitemap_dir(GLOBAL_COLLECTION_DIRECTORY, "", false) {
-        Ok(franchise_urls) => franchise_urls,
-        Err(_) => {
-            return HttpResponse::InternalServerError()
-                .server_version_header()
-                .finish();
-        }
-    };
+    let franchise_urls =
+        match sitemap_utility::generate_sitemap_dir(GLOBAL_COLLECTION_DIRECTORY, "", false) {
+            Ok(franchise_urls) => franchise_urls,
+            Err(_) => {
+                return HttpResponse::InternalServerError()
+                    .server_version_header()
+                    .finish();
+            }
+        };
 
     HttpResponse::Ok()
         .server_version_header()
         .append_header(("Content-Type", "text/xml"))
         .body(franchise_urls)
 }
-
 
 //
 
@@ -186,9 +191,8 @@ async fn handle_request(
 
     if path.is_dir() {
         let directory_search = handle_directory(
-            &path,
-            query.get("search_input").unwrap_or(&String::new()),
             &raw_path,
+            query.get("search_input").unwrap_or(&String::new()),
         );
 
         return HttpResponse::Ok()
@@ -222,20 +226,20 @@ fn handle_file(path: &str) -> Option<String> {
 }
 
 fn handle_category_search(search_input: &str, raw_path: &str) -> Result<serde_json::Value, u16> {
-    let mut search: Vec<String> = SearchBuilder::default()
-        .location(raw_path)
-        .ignore_case()
-        .depth(1)
-        .search_input(search_input)
-        .build()
-        .collect();
+    let mut search: Vec<String> = {
+        let thing =
+            file_searcher::search_directories(raw_path, &DEFAULT_EXCLUSION.to_vec(), search_input, 127);
+        match thing {
+            Ok(s) => s,
+            Err(_) => Vec::new(),
+        }
+    };
 
-    similarity_sort(&mut search, search_input);
     let mut categories: Vec<FrontMatter> = Vec::new();
 
     let mut index: u32 = 0;
     while index < search.len() as u32 {
-        search[index as usize] = search[index as usize].replace("\\", "/"); // stop it windows.
+        search[index as usize] = format!("{}/{}", raw_path, search[index as usize].replace("\\", "/")); // stop it windows.
 
         if search[index as usize] == raw_path || search[index as usize].contains("index.md") {
             search.remove(index as usize);
@@ -259,6 +263,7 @@ fn handle_category_search(search_input: &str, raw_path: &str) -> Result<serde_js
             front_matter.dynamic_path = search[index as usize]
                 .trim_start_matches(&format!("{}/", raw_path))
                 .to_owned();
+            front_matter.last_modified = frontmatter_extractor::get_last_modified_seconds(&raw_path);
             categories.push(front_matter);
             index += 1;
         }
@@ -286,17 +291,10 @@ fn handle_frontmatter(raw_path: &str) -> Result<serde_json::Value, u16> {
                 page_count_path = &raw_path[..index];
             }
 
-            let search: Vec<String> = SearchBuilder::default()
-                .location(page_count_path)
-                .ext(".md")
-                .ignore_case()
-                .depth(3)
-                .build()
-                .collect();
-
             match front_matter {
                 Some(mut some_more_value) => {
-                    some_more_value.page_count = search.len() as u64;
+                    some_more_value.page_count = file_searcher::count_files(page_count_path);
+                    some_more_value.last_modified = frontmatter_extractor::get_last_modified_seconds(&raw_path);
                     return Ok(json!(some_more_value));
                 }
                 None => {
@@ -311,18 +309,23 @@ fn handle_frontmatter(raw_path: &str) -> Result<serde_json::Value, u16> {
 }
 
 fn handle_root_directory_search(search_input: &str) -> serde_json::Value {
-    let mut search: Vec<String> = SearchBuilder::default()
-        .location(GLOBAL_COLLECTION_DIRECTORY)
-        .ignore_case()
-        .search_input(search_input)
-        .depth(1)
-        .build()
-        .collect();
+    let mut search: Vec<String> = {
+        let things = file_searcher::search_directories(
+            GLOBAL_COLLECTION_DIRECTORY,
+            &DEFAULT_EXCLUSION.to_vec(),
+            search_input,
+            127,
+        );
+        match things {
+            Ok(s) => s,
+            Err(_) => Vec::new(),
+        }
+    };
 
-    similarity_sort(&mut search, search_input);
     let mut wiki_list: Vec<frontmatter_extractor::FranchiseData> = Vec::new();
 
     for file_path in &mut search {
+        let file_path = format!("{}/{}", GLOBAL_COLLECTION_DIRECTORY, file_path);
         let index_markdown = PathBuf::from(format!("{}/index.md", file_path.replace("\\", "/")));
 
         if index_markdown.exists() && index_markdown.is_file() {
@@ -349,6 +352,8 @@ fn handle_root_directory_search(search_input: &str) -> serde_json::Value {
                 .unwrap_or("")
                 .to_owned();
 
+            frontmatter_data.last_modified = frontmatter_extractor::get_last_modified_seconds(&format!("{}/index.md", &file_path));
+
             wiki_list.push(frontmatter_data);
         }
     }
@@ -356,23 +361,22 @@ fn handle_root_directory_search(search_input: &str) -> serde_json::Value {
     json!(wiki_list)
 }
 
-fn handle_directory(path: &PathBuf, search_input: &str, raw_path: &str) -> serde_json::Value {
-    let mut search: Vec<String> = SearchBuilder::default()
-        .location(path)
-        .limit(50)
-        .ext(".md")
-        .ignore_case()
-        .depth(1)
-        .search_input(search_input)
-        .build()
-        .collect();
-
-    similarity_sort(&mut search, search_input);
+fn handle_directory(path: &str, search_input: &str) -> serde_json::Value {
+    let mut search: Vec<String> = {
+        let thing =
+            file_searcher::search_files(path, &DEFAULT_EXCLUSION.to_vec(), search_input, 127);
+        match thing {
+            Ok(s) => s,
+            Err(_) => Vec::new(),
+        }
+    };
 
     let mut catalogue_list: Vec<data_types::DirectoryLister> = Vec::new();
 
     for file_path in &mut search {
-        match frontmatter_extractor::read_file_to_string(file_path) {
+        let mut file_path = format!("{}/{}", path, file_path);
+        let original_path = file_path.clone();
+        match frontmatter_extractor::read_file_to_string(&file_path) {
             Some(some_value) => {
                 let _front_matter = frontmatter_extractor::FrontMatter::from_yaml(&some_value);
 
@@ -381,16 +385,15 @@ fn handle_directory(path: &PathBuf, search_input: &str, raw_path: &str) -> serde
                     Err(_) => None,
                 };
 
-                *file_path = file_path.replace("\\", "/"); // stop it windows.
+                file_path = file_path.replace("\\", "/"); // stop it windows.
 
                 match front_matter {
                     Some(front_matter) => {
-                        *file_path = file_path
-                            .trim_start_matches(&format!("{}/", raw_path))
+                        file_path = file_path
+                            .trim_start_matches(&format!("{}/", path))
                             .to_string();
-                        *file_path = file_path.trim_end_matches(".md").to_string();
 
-                        let dynamic_path_clone = file_path.clone();
+                        let dynamic_path_clone = file_path.trim_end_matches(".md").to_string().clone();
 
                         let new_data = data_types::DirectoryLister {
                             title: front_matter.title,
@@ -398,6 +401,7 @@ fn handle_directory(path: &PathBuf, search_input: &str, raw_path: &str) -> serde
                             image: front_matter.image,
                             dynamic_path: dynamic_path_clone,
                             spoiler: front_matter.spoiler,
+                            last_modified: frontmatter_extractor::get_last_modified_seconds(&original_path)
                         };
 
                         if file_path.clone() != "index" {

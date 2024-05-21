@@ -6,9 +6,12 @@
         "lastmod",
         "Nuxt",
         "rfind",
+        "Sairo",
         "serde",
         "sitemapindex",
         "splitn",
+        "strsim",
+        "Tris",
         "urlset"
     ]
 }

@@ -1,6 +1,7 @@
 use serde::Serialize;
+use std::time::SystemTime;
 use std::vec::Vec;
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::Read;
 
 #[derive(Serialize)]
@@ -9,7 +10,8 @@ pub struct FrontMatter {
     pub description: String,
     pub image: String,
     pub dynamic_path: String,
-    pub spoiler: bool
+    pub spoiler: bool,
+    pub last_modified: u64,
 }
 
 impl FrontMatter {
@@ -19,7 +21,8 @@ impl FrontMatter {
             description: String::new(),
             image: String::new(),
             dynamic_path: String::new(),
-            spoiler: false
+            spoiler: false,
+            last_modified: 0,
         };
 
         // Parse YAML format
@@ -81,6 +84,7 @@ pub struct FranchiseData {
     pub page_count: u64,
     pub dynamic_path: String,
     pub saihex_creation: bool,
+    pub last_modified: u64
 }
 
 impl FranchiseData {
@@ -96,6 +100,7 @@ impl FranchiseData {
             default_embed_image: String::new(),
             franchise_proper_name: String::new(),
             page_count: 0,
+            last_modified: 0,
         };
 
         // Parse YAML format
@@ -159,4 +164,15 @@ pub fn read_file_to_string(file_path: &str) -> Option<String> {
     }
 
     Some(contents) // Return the contents wrapped in Some
+}
+
+pub fn get_last_modified_seconds(file_path: &str) -> u64 {
+    if let Ok(metadata) = fs::metadata(file_path) {
+        if let Ok(modified_time) = metadata.modified() {
+            if let Ok(duration_since_epoch) = modified_time.duration_since(SystemTime::UNIX_EPOCH) {
+                return duration_since_epoch.as_secs();
+            }
+        }
+    }
+    0 // Return 0 if any operation fails
 }

@@ -7,4 +7,5 @@ pub struct DirectoryLister {
     pub description: String,
     pub image: String,
     pub spoiler: bool,
+    pub last_modified: u64
 }

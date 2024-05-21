@@ -1,4 +1,4 @@
-**Version: 0.0.2-c**
+**Version: 0.0.2-d**
 
 Note: Letters after the version numbers are their sub-evolutions when non-major changes were added. Version number will increase after the letter hits `z`. If we found lethal issues after a push we will delete the last image build from docker hub and push fixes under the same version. Version won't increase if changes are less than `three` unless huge change such as core rework.
 
@@ -8,81 +8,157 @@ Note: Letters after the version numbers are their sub-evolutions when non-major 
 This software is used by [Saihex Studios](www.saihex.com) for the wiki website in order to catalogue the markdown files.
 Meant to be used with [Saihex Studios' Nuxt Markdown Wiki Website](https://github.com/Saihex/nuxt-static-markdown-wiki-website)
 
+**WARNING: This software is designed to be used within a Docker container**
+
 - Expose port `8080`
 - Attach `/collection` volume to the directory that contains all the images and files you want to expose.
 
-## File structure
-Any path given will be used as the path from the collection directory. Example:
-`localhost:8080/FranchiseName/Stories/the.md` -> `/collection/FranchiseName/Stories/the.md`
+## Docker setup with Saihex Studios' Nuxt Markdown Wiki Website
+When being used with [Saihex Studios' Nuxt Markdown Wiki Website](https://github.com/Saihex/nuxt-static-markdown-wiki-website) - This software's container must be named `markdown_cat_server` and share the same Docker network.
 
-If given path is a directory; the handler will enter list mode, the requester can put a parameter `dir_search` to string value of the markdown file to search. Be warned that this won't search by the front-matter `title` within the markdown files so it is best to keep the two almost identical or better exactly the same.
+It is not necessary to expose the port of this software's container in this setup.
 
-If given path is a file; the handler will read it and pass it as body, basically acting as a generic file server. **This doesn't limit to just markdown files unlike list mode.**
+---
 
-## List mode
-### ***WARNING***
-front-matter of every markdown files must have `title`, `description` and `image` string values. Without this, the server will still list it but the string value for them will be empty. No additional front-matters will be included. Files with `index` as `dynamic_path` will be removed from the list.
+## File Structure
+A directory `/collection` containing all the wiki must be present for this software to work and follow this structure (franchises are individual wikis)
+```
+/collection
+    /franchise1
+        /category1
+            /page1
+            /page2
 
-### Front-matter parsing
-The software will read the front-matter and make a object of it. Default value of the type is used if the front-matter value isn't found.
-
-For those with sensitive characters please use **quotation mark** in between the String value. The software will automatically remove the quotes from the String value on parsing
-
-**Front-matters that are not in the expected list will not be included into the parsed data.**
-
-### Expected franchise markdown front-matters
-```rust
-franchise_proper_name: String, // Proper name of the franchise
-title: String, // Title of the page, normally "Home"
-description: String, // Description of the franchise
-ico_image: String, // The tab icon
-wiki_head_image: String, // The image that appears on top-left of the wiki page.
-default_embed_image: String, // Default embed image which is used for main page.
-image: String, // Square logo image
-saihex_creation: true // Optional. Used to determine whether it is Saihex's creation. Default to false if none found.
+        /category2
+            /page1
+            /page2
+    
+    /franchise2
+        /category1
+            /page1
+            /page2
+            
+        /category2
+            /page1
+            /page2
 ```
 
-### Expected Front-matters within markdown files
-```rust
-title: String,
-description: String,
-image: String, // The image shown at the search results and page embed
-spoiler: bool // optional, if none the software will assume it as false.
+## Fetch markdown file
+To get the markdown is simply by providing absolute path to the file starting from the collection directory.
+
+**Example:** `http://localhost:8080/The4Tris/logic/Brain_Crystal.md`
+
+## Search APIs
+### Wiki searching
+To list and search all available wikis - the url must be anything but root path and includes a query parameter `root_dir_search` with value of `true`. Query parameter `search_input` is used as well, the search input.
+
+The search input is typo tolerance. The software will try to read the wiki main page `franchise_proper_name` [front-matter](#expected-markdown-front-matters) and if it can't it will use the franchise directory name. 
+
+**Examples:**
+
+- Anything but root path: `http://localhost:8080/a?root_dir_search=true`
+- with search input: `http://localhost:8080/a?search_input=The4Tris&root_dir_search=true`
+
+### Category Searching
+To list and search all available categories within a wiki - the url must points to the wiki alongside query parameter `category_search` with value of `true`. Query parameter `search_input` is used as well to serve same purpose and logic flow as it does in [Wiki searching](#wiki-searching).
+
+However, the search input in this case will instead look for `title` [front-matter](#expected-markdown-front-matters) rather than `franchise_proper_name`. 
+
+**Examples:**
+- without search input: `http://localhost:8080/The4Tris?category_search=true`
+- with search input: `http://localhost:8080/The4Tris?category_search=true&search_input=logic`
+
+### Category Contents Searching
+To list and search all available pages within a wiki's category - the url must points to that wiki category without requiring any query parameter to active the searching feature. Query parameter `search_input` is used as well to serve same purpose and logic flow as it does in [Category Searching](#category-searching).
+
+**Examples:**
+- without search input: `http://localhost:8080/The4Tris/logic`
+- with search input: `http://localhost:8080/The4Tris/logic?search_input=Brain`
+
+## Expected markdown front-matters
+**For franchises. Example taken from [The 4Tris wiki homepage](https://wiki.saihex.com/wiki/The4Tris) markdown.**
+```yaml
+franchise_proper_name: The 4Tris
+title: Home
+description: Four Brain Crystal Robots doing missions while attached to a reality bending simulation to save the world.
+ico_image: https://img.saihex.com/wiki_exclusive/The4Tris/The4Tris.ico
+wiki_head_image: https://img.saihex.com/wiki_exclusive/The4Tris/The4Tris_Cover_Text.svg
+default_embed_image: https://img.saihex.com/webp?src=wiki_exclusive/The4Tris/4TrisCover.png
+image: https://img.saihex.com/wiki_exclusive/The4Tris/The4Tris.svg
+saihex_creation: true
 ```
 
-### List mode JSON body
-List mode will return a JSON array of JSON dictionaries structured like this
-(Defaults)
+**For categories and pages. Example taken from [The 4Tris wiki Sairo](https://wiki.saihex.com/wiki/The4Tris/category/Characters/Sairo) character page.**
+```yaml
+title: Sairo
+description: Sairo, a powerful little Brain Crystal that is also half Reality Bender Crystal. She is one of the four main characters.
+image: https://img.saihex.com/webp?src=wiki_exclusive/The4Tris/page_icon/characters/sairo/sairo.png
+spoiler: false
+```
+
+## JSON Bodies
+The list of dynamically created data (both bodies):
+- `last_modified`
+- `page_count`
+- `dynamic_path`
+
+**Wiki search**
 ```json
 [
     {
-        "title": "",
-        "description": "",
-        "image": "",
-        "dynamic_path": "",
+        "default_embed_image": "https://img.saihex.com/webp?src=wiki_exclusive/The4Tris/4TrisCover.png",
+        "description": "Four Brain Crystal Robots doing missions while attached to a reality bending simulation to save the world.",
+        "dynamic_path": "The4Tris",
+        "franchise_proper_name": "The 4Tris",
+        "ico_image": "https://img.saihex.com/wiki_exclusive/The4Tris/The4Tris.ico",
+        "image": "https://img.saihex.com/wiki_exclusive/The4Tris/The4Tris.svg",
+        "last_modified": 1716099640,
+        "page_count": 0,
+        "saihex_creation": true,
+        "title": "Home",
+        "wiki_head_image": "https://img.saihex.com/wiki_exclusive/The4Tris/The4Tris_Cover_Text.svg"
+    }
+]
+```
+**Category and page search**
+```json
+[
+    {
+        "description": "All the characters in The 4Tris universe (excluding background characters)",
+        "dynamic_path": "Characters",
+        "image": "https://img.saihex.com/webp?src=wiki_exclusive/The4Tris/category_icons/characters.png",
+        "last_modified": 1716099640,
         "spoiler": false,
+        "title": "Characters"
     }
 ]
 ```
 
-The first 3 will be set to what it reads from the markdown front-matter. `dynamic_path` will be set to path relative to the current directory which is like this:
+## Sitemaps
+Sitemap is used by front-end to provide web crawlers path of URLs to properly index the wiki website.
 
-`/collection/something.md` -> `something`
+### Sitemap Structure
+`/sitemap_xml` by itself provides locations to get the sitemaps that provides each wiki's pages and categories URLs. (Ex: `/sitemap_xml/The4Tris`)
 
-removal of the `.md` is due to how our wiki website dynamic routes works. **List mode will only list 50 markdown files at once sorted by similarity first then alphabet.**
+`/sitemap` provides location to wiki home pages.
 
-Used dependencies
+---
+
+
+## Additional data
+**Used dependencies (TOTAL `MIT*`)**
 ```
 async-stream = "0.3.5" --  MIT
 actix-web = "4" --  MIT OR Apache-2.0 
 actix-files = "0.6" --  MIT OR Apache-2.0 
-rust_search = "2.0.0" --  MIT
 serde_json = "1.0" --  MIT OR Apache-2.0 
 serde = { version = "1.0", features = ["derive"] } --  MIT OR Apache-2.0
 chrono = "0.4" -- MIT or Apache-2.0
+strsim = "0.11.1" -- MIT
+rayon = "1.5.3" -- MIT or Apache-2.0
 ```
 
 **Docker Image**
 ```
-saihex/markdown_catalogue_server:v0.0.2-c
+saihex/markdown_catalogue_server:v0.0.2-d
 ```
