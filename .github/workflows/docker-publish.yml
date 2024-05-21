@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: vps1-runner
+    runs-on: self-hosted
     steps:
       -
         name: Set up QEMU
