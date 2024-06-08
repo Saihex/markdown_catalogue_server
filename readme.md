@@ -46,7 +46,7 @@ A directory `/collection` containing all the wiki must be present for this softw
 ## Fetch markdown file
 To get the markdown is simply by providing absolute path to the file starting from the collection directory.
 
-**Example:** `http://localhost:8080/The4Tris/logic/Brain_Crystal.md`
+**Example:** `http://localhost:8080/The4Tris/category/logic/Brain_Crystal.md`
 
 ## Search APIs
 ### Wiki searching
