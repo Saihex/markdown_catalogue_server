@@ -22,6 +22,8 @@ export async function frontmatter_api_handler(
   const fileContent = await Deno.readTextFile(filePath);
   const frontmatters = extractFrontMatter(fileContent);
 
+  frontmatters["last_modified"] = _fileInfo.mtime ? Math.floor(_fileInfo.mtime.getTime() / 1000) : null;
+
   return new Response(JSON.stringify(frontmatters), {
     status: 200,
     headers: {
@@ -36,7 +38,7 @@ function canBeNumber(value: string): boolean {
 }
 
 function extractFrontMatter(content: string) {
-  const split = content.split("\r\n");
+  const split = content.split("\n");
   let startRecording = false;
   const frontmatter_data: { [key: string]: string | boolean | number } = {};
 

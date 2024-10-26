@@ -1,3 +1,4 @@
+import { collection_path } from './globals.ts';
 import { files_api_handler } from "./api_handlers/files_handler.ts";
 import { dirSearch_api_handler } from "./api_handlers/dirSearch_handler.ts";
 import { sitemap_api_handler } from "./api_handlers/sitemap.ts";
@@ -11,7 +12,7 @@ const handler_apis: Record<string, ApiHandler> = {
   "dirSearch": dirSearch_api_handler,
   "sitemap": sitemap_api_handler,
   "frontmatter": frontmatter_api_handler,
-  "fileModidate": file_modidate_api_handler
+  "fileModiDate": file_modidate_api_handler
 };
 
 function getAPIType(path: string): string | null {
@@ -50,9 +51,10 @@ async function main_handler(req: Request) {
   }
 
   // no API type found;
-  return new Response("Invalid API Identifier.\nAPI Exists?", {
+  return new Response(`Invalid API Identifier.\nAPI Exists? ${api_type}`, {
     status: 400,
   });
-}
+};
 
+console.log(collection_path);
 Deno.serve({ port: 8080 }, main_handler);
