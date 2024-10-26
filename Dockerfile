@@ -1,16 +1,18 @@
-FROM rust:1.77.2-buster as builder
+FROM denoland/deno:latest AS builder
 
 WORKDIR /app
 
 COPY . .
 
-RUN cargo build --release
-RUN strip target/release/markdown_catalogue_server
+RUN deno install
+
+# Compile the Deno app to a single binary
+RUN deno compile --allow-read --allow-net --output /app/output/mcs src/main.ts
 
 FROM debian:buster-slim
 
-COPY --from=builder /app/target/release/markdown_catalogue_server /usr/local/bin/markdown_catalogue_server
+COPY --from=builder /app/output/mcs /usr/local/bin/mcs
 EXPOSE 8080
 VOLUME [ "/collection" ]
 
-CMD ["markdown_catalogue_server"]
+CMD ["mcs"]
