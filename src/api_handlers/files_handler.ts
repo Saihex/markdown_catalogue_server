@@ -6,11 +6,12 @@ export async function files_api_handler(
   _req: Request,
   url: URL,
 ): Promise<Response> {
-  const filePath = `${collection_path}/${url.pathname.substring(5)}`;
+  const filePath = `${collection_path}/${url.pathname.substring(7)}`;
 
   const [fileExists, _fileInfo] = await getFileInfo(filePath);
 
   if (!fileExists) {
+    console.log(filePath)
     return new Response(null, { status: 404 });
   }
 
