@@ -1,4 +1,3 @@
-import { collection_path } from './globals.ts';
 import { files_api_handler } from "./api_handlers/files_handler.ts";
 import { dirSearch_api_handler } from "./api_handlers/dirSearch_handler.ts";
 import { sitemap_api_handler } from "./api_handlers/sitemap.ts";
@@ -56,5 +55,4 @@ async function main_handler(req: Request) {
   });
 };
 
-console.log(collection_path);
 Deno.serve({ port: 8080 }, main_handler);

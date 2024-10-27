@@ -76,7 +76,7 @@ export async function dirSearch_api_handler(
       const similarity = processDirSearch(dirEntry, directoryMode, searchEntry);
       if (similarity == null) continue;
 
-      if (similarity >= 0.35) {
+      if (similarity >= 0.4) {
         results.push(dirEntry.name);
       }
 

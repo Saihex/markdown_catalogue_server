@@ -11,7 +11,6 @@ export async function files_api_handler(
   const [fileExists, _fileInfo] = await getFileInfo(filePath);
 
   if (!fileExists) {
-    console.log(filePath)
     return new Response(null, { status: 404 });
   }
 
