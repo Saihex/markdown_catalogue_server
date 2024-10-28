@@ -3,6 +3,7 @@ import { dirSearch_api_handler } from "./api_handlers/dirSearch_handler.ts";
 import { sitemap_api_handler } from "./api_handlers/sitemap.ts";
 import { frontmatter_api_handler } from "./api_handlers/frontmatter.ts";
 import { file_modidate_api_handler } from "./api_handlers/file_modidate.ts";
+import { collection_path } from "./globals.ts";
 
 type ApiHandler = (request: Request, url: URL) => Promise<Response>;
 
@@ -66,4 +67,5 @@ async function main_handler(req: Request) {
   });
 }
 
+console.log(collection_path);
 Deno.serve({ port: 8080 }, main_handler);
