@@ -13,6 +13,7 @@ FROM debian:buster-slim
 
 COPY --from=builder /app/output/mcs /usr/local/bin/mcs
 EXPOSE 8080
+RUN mkdir /collection
 VOLUME [ "/collection" ]
 
 CMD ["mcs"]

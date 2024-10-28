@@ -48,8 +48,12 @@ export async function frontmatter_api_handler(
     ? Math.floor(_fileInfo.mtime.getTime() / 1000)
     : 0;
 
-  if (url.searchParams.get("markdown_count") == "true") {
-    frontmatters["page_count"] = await countMarkdownFiles(`${filePath}/..`);
+    if (url.searchParams.get("markdown_count") === "true") {
+      const pathSegments = filePath.split("/");
+      pathSegments.pop();
+  
+      const directoryPath = pathSegments.join("/");
+      frontmatters["page_count"] = await countMarkdownFiles(directoryPath);
   }
 
   return new Response(JSON.stringify(frontmatters), {
