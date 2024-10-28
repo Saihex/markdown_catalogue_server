@@ -31,6 +31,7 @@ export async function sitemap_api_handler(
       status: 200,
       headers: {
         "Content-Type": "application/xml; charset=utf-8",
+        "Cache-Control": "public, max-age=3600, must-revalidate"
       },
     });
   }

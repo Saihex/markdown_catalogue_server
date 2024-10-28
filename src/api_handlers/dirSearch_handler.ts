@@ -89,6 +89,7 @@ export async function dirSearch_api_handler(
       status: 200,
       headers: {
         "Content-Type": "application/json",
+        "Cache-Control": "no-cache"
       },
     });
   }

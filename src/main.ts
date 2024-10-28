@@ -7,11 +7,11 @@ import { file_modidate_api_handler } from "./api_handlers/file_modidate.ts";
 type ApiHandler = (request: Request, url: URL) => Promise<Response>;
 
 const handler_apis: Record<string, ApiHandler> = {
-  "files": files_api_handler,
-  "dirSearch": dirSearch_api_handler,
-  "sitemap": sitemap_api_handler,
-  "frontmatter": frontmatter_api_handler,
-  "fileModiDate": file_modidate_api_handler
+  files: files_api_handler,
+  dirSearch: dirSearch_api_handler,
+  sitemap: sitemap_api_handler,
+  frontmatter: frontmatter_api_handler,
+  fileModiDate: file_modidate_api_handler,
 };
 
 function getAPIType(path: string): string | null {
@@ -42,6 +42,17 @@ async function main_handler(req: Request) {
 
   // the API handler execution.
   {
+    if (api_type == "heartbeat") {
+      return new Response("I'M OKAY!", {
+        status: 200,
+
+        headers: {
+          "Content-Type": "text/plain",
+          "Cache-Control": "no-cache",
+        },
+      });
+    }
+
     const handler = handler_apis[api_type];
 
     if (handler) {
@@ -53,6 +64,6 @@ async function main_handler(req: Request) {
   return new Response(`Invalid API Identifier.\nAPI Exists? ${api_type}`, {
     status: 400,
   });
-};
+}
 
 Deno.serve({ port: 8080 }, main_handler);

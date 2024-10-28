@@ -25,7 +25,8 @@ export async function files_api_handler(
 
   return new Response(fileContent, {
     headers: new Headers({
-      "content-type": contentType,
+      "Content-Type": contentType,
+      "Cache-Control": "public, max-age=3600, must-revalidate"
     }),
   });
 }

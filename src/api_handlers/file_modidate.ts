@@ -1,6 +1,5 @@
 import { collection_path } from "../globals.ts";
 import { getFileInfo } from "../utils/file_utils.ts";
-import * as mrmime from "mrmime";
 
 export async function file_modidate_api_handler(
   _req: Request,
@@ -20,15 +19,21 @@ export async function file_modidate_api_handler(
     });
   }
 
-  const unixTimestamp = _fileInfo.mtime ? Math.floor(_fileInfo.mtime.getTime() / 1000) : null;
+  const unixTimestamp = _fileInfo.mtime
+    ? Math.floor(_fileInfo.mtime.getTime() / 1000)
+    : null;
 
-  return new Response(JSON.stringify(
-    {
+  return new Response(
+    JSON.stringify(
+      {
         unix_modification_date: unixTimestamp,
-    }
-  ), {
-    headers: new Headers({
-      "content-type": "application/json",
-    }),
-  });
+      },
+    ),
+    {
+      headers: new Headers({
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache"
+      }),
+    },
+  );
 }

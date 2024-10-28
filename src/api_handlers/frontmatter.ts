@@ -5,7 +5,7 @@ import { walk } from "jsr:@std/fs/walk";
 
 export async function frontmatter_api_handler(
   _req: Request,
-  url: URL
+  url: URL,
 ): Promise<Response> {
   const filePath = `${collection_path}/${url.pathname.substring(12)}`;
 
@@ -48,8 +48,7 @@ export async function frontmatter_api_handler(
     ? Math.floor(_fileInfo.mtime.getTime() / 1000)
     : 0;
 
-  if (url.searchParams.get("markdown_count") == "true")
-  {
+  if (url.searchParams.get("markdown_count") == "true") {
     frontmatters["page_count"] = await countMarkdownFiles(`${filePath}/..`);
   }
 
@@ -57,6 +56,7 @@ export async function frontmatter_api_handler(
     status: 200,
     headers: {
       "Content-Type": "application/json",
+      "Cache-Control": "public, max-age=3600, must-revalidate"
     },
   });
 }
@@ -123,9 +123,9 @@ async function countMarkdownFiles(dir: string): Promise<number> {
 
   // Walk through the directory recursively
   for await (const entry of walk(dir)) {
-      if (entry.isFile && entry.name.endsWith(".md")) {
-          count++;
-      }
+    if (entry.isFile && entry.name.endsWith(".md")) {
+      count++;
+    }
   }
 
   return count;
