@@ -60,7 +60,7 @@ export async function frontmatter_api_handler(
     status: 200,
     headers: {
       "Content-Type": "application/json",
-      "Cache-Control": "public, max-age=3600, must-revalidate"
+      "Cache-Control": "public, max-age=120, must-revalidate"
     },
   });
 }

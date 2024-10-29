@@ -85,11 +85,13 @@ export async function dirSearch_api_handler(
       }
     }
 
+    results.sort((a, b) => a.localeCompare(b));
+
     return new Response(JSON.stringify(results), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        "Cache-Control": "no-cache"
+        "Cache-Control": "public, max-age=120, must-revalidate"
       },
     });
   }

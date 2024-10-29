@@ -30,8 +30,8 @@ export async function sitemap_api_handler(
     return new Response(sitemap_text, {
       status: 200,
       headers: {
-        "Content-Type": "application/xml; charset=utf-8",
-        "Cache-Control": "public, max-age=3600, must-revalidate"
+        "Content-Type": "application/xml",
+        "Cache-Control": "no-cache"
       },
     });
   }
