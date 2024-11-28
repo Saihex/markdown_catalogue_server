@@ -107,11 +107,13 @@ async function extractFrontMatter(file_path: string) {
       }
 
       if (final_value === undefined) {
-        if (value[1].startsWith(`"`) && value[1].endsWith(`"`)) {
+        const wholeStr = value.slice(1).join(": ");
+
+        if (wholeStr.startsWith(`"`) && wholeStr.endsWith(`"`)) {
           // Remove the quotes
-          final_value = value[1].slice(1, -1); // Removes the first and last character
+          final_value = wholeStr.slice(1, -1); // Removes the first and last character
         } else {
-          final_value = value[1]; // Assigns the value without modification
+          final_value = wholeStr; // Assigns the value without modification
         }
       }
 
