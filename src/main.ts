@@ -5,6 +5,7 @@ import { frontmatter_api_handler } from "./api_handlers/frontmatter.ts";
 import { file_modidate_api_handler } from "./api_handlers/file_modidate.ts";
 import { collection_path } from "./globals.ts";
 
+const VERSION = "v0.0.2-g";
 type ApiHandler = (request: Request, url: URL) => Promise<Response>;
 
 const handler_apis: Record<string, ApiHandler> = {
@@ -29,6 +30,9 @@ async function main_handler(req: Request) {
   if (req.url.includes("..")) {
     return new Response(null, {
       status: 403,
+      headers: {
+        "MCSVersion": VERSION
+      }
     });
   }
 
@@ -38,18 +42,22 @@ async function main_handler(req: Request) {
   if (!api_type) {
     return new Response("API Identifier not set.", {
       status: 400,
+      headers: {
+        "MCSVersion": VERSION
+      }
     });
   }
 
   // the API handler execution.
   {
     if (api_type == "heartbeat") {
-      return new Response("I'M OKAY!", {
+      return new Response("OK", {
         status: 200,
 
         headers: {
           "Content-Type": "text/plain",
           "Cache-Control": "no-cache",
+          "MCSVersion": VERSION
         },
       });
     }
@@ -57,7 +65,14 @@ async function main_handler(req: Request) {
     const handler = handler_apis[api_type];
 
     if (handler) {
-      return await handler(req, url);
+      const response = await handler(req, url);
+
+      response.headers.set(
+        "MCSVersion",
+        VERSION,
+      );
+
+      return response;
     }
   }
 

@@ -32,7 +32,7 @@ export async function file_modidate_api_handler(
     {
       headers: new Headers({
         "Content-Type": "application/json",
-        "Cache-Control": "public, max-age=120, must-revalidate"
+        "Cache-Control": "public, max-age=7200, must-revalidate"
       }),
     },
   );
